@@ -3,7 +3,11 @@
 #include "editor.h"
 
 int editor_insert_char(char editing_buffer[], int editing_buflen, char to_insert, int pos) {
-    return pos < 0 || pos >= editing_buflen ? 0 : (memmove(editing_buffer + pos + 1, editing_buffer + pos, editing_buflen - pos - 1), editing_buffer[pos] = to_insert, 1);
+    return pos < 0 || pos >= editing_buflen ? 0 : (
+        memmove(editing_buffer + pos + 1, editing_buffer + pos, editing_buflen - pos - 1),
+        editing_buffer[pos] = to_insert,
+        1
+        );
 }
 
 int editor_delete_char(char editing_buffer[], int editing_buflen, char to_delete, int offset) {
