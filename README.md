@@ -1,2 +1,2 @@
-# NWEN241_T1_2024 - Systems Programming
+# NWEN241 T1 2024 - Systems Programming
 
