@@ -10,15 +10,15 @@
 #ifndef __EDITOR_H__
 #define __EDITOR_H__
 
-/**
- * Task 1.
- * Insert a charater in the editing buffer.
- * @param editing_buffer Editing buffer
- * @param editing_buflen Length of editing buffer in bytes
- * @param to_insert Character to insert
- * @param pos Index where insertion should occur
- * @return 1 if the insertion occurred, otherwise 0
- */
+ /**
+  * Task 1.
+  * Insert a charater in the editing buffer.
+  * @param editing_buffer Editing buffer
+  * @param editing_buflen Length of editing buffer in bytes
+  * @param to_insert Character to insert
+  * @param pos Index where insertion should occur
+  * @return 1 if the insertion occurred, otherwise 0
+  */
 int editor_insert_char(char editing_buffer[], int editing_buflen, char to_insert, int pos);
 
 /**
@@ -42,7 +42,7 @@ int editor_delete_char(char editing_buffer[], int editing_buflen, char to_delete
  * @param offset Index to start searching for the string
  * @return If the string replacement occurred, the function should return the index corresponding the last letter of @str in @editing_buffer, otherwise, it should return -1.
  */
-int editor_replace_str(char editing_buffer[], int editing_buflen, const char *str, const char *replacement, int offset);
+int editor_replace_str(char editing_buffer[], int editing_buflen, const char* str, const char* replacement, int offset);
 
 /**
  * Task 4.

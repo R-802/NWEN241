@@ -3,10 +3,10 @@
 
 #include "editor.h"
 
-
+// CORE 1
 int editor_insert_char(char editing_buffer[], int editing_buflen, char to_insert, int pos) {
     if (pos < 0 || pos >= editing_buflen) {
-        return 0; // If out of bounds return 0
+        return 0; // If out of bounds return 0 
     }
 
     char* destination = &editing_buffer[0] + pos + 1; // Address of the character to the right of the position
@@ -22,7 +22,7 @@ int editor_insert_char(char editing_buffer[], int editing_buflen, char to_insert
     return 1;
 }
 
-
+// CORE 2
 int editor_delete_char(char editing_buffer[], int editing_buflen, char to_delete, int offset) {
     // Starting from the offset, iterate to the end of the buffer
     for (int i = offset; i < editing_buflen; i++) {
@@ -48,7 +48,7 @@ int editor_delete_char(char editing_buffer[], int editing_buflen, char to_delete
     return 0;
 }
 
-
+// COMPLETION
 int editor_replace_str(char editing_buffer[], int editing_buflen, const char* str, const char* replacement, int offset) {
     if (offset < 0 || offset >= editing_buflen) {
         return -1; // If out of bounds return -1
@@ -74,36 +74,12 @@ int editor_replace_str(char editing_buffer[], int editing_buflen, const char* st
 }
 
 
+// DID NOT ATTEMPT CHALLENGE
 void editor_view(int rows, int cols, char viewing_buffer[rows][cols], const char editing_buffer[], int editing_buflen, int wrap) {
-    // Set every character in viewing_buffer to null character
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            viewing_buffer[i][j] = '\0';
-        }
-    }
-
-    int viewing_row = 0; // Current row in viewing_buffer
-    int viewing_col = 0; // Current column in viewing_buffer
-
-    for (int i = 0; i < editing_buflen; i++) {
-        if (editing_buffer[i] == '\0') {
-            break; // Terminate the copying process when null character is encountered
-        }
-
-        if (editing_buffer[i] == '\n') {
-            viewing_row++; // Move to the next row in viewing_buffer
-            viewing_col = 0; // Reset the column to 0
-        }
-        else if (viewing_col < cols - 1) {
-            viewing_buffer[viewing_row][viewing_col] = editing_buffer[i]; // Copy the character to viewing_buffer
-            viewing_col++; // Move to the next column in viewing_buffer
-        }
-        else if (wrap) {
-            viewing_row++; // Move to the next row in viewing_buffer
-            viewing_col = 0; // Reset the column to 0
-            viewing_buffer[viewing_row][viewing_col] = editing_buffer[i]; // Copy the character to viewing_buffer
-            viewing_col++; // Move to the next column in viewing_buffer
-        }
-    }
-
+    // 
+    // for (int i = 0; i < rows; i++) {
+    //     for (int j = 0; j < cols; j++) {
+    //         viewing_buffer[i][j] = '\0';
+    //     }
+    // }
 }
