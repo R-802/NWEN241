@@ -9,6 +9,13 @@
 
 #define BUFFER_SIZE 1024
 
+#define COMMAND_ERROR "SERVER 502 Command Error\n"
+#define GET_ERROR "SERVER 500 Get Error\n"
+#define PUT_ERROR "SERVER 501 Put Error\n"
+#define NOT_FOUND "SERVER 404 Not Found\n"
+#define FOUND "SERVER 200 OK\n"
+#define CREATED "SERVER 201 Created\n"
+
 //----------Helper functions----------//
 
 /**
@@ -18,6 +25,15 @@
 void error(const char *msg) {
   perror(msg);
   exit(EXIT_FAILURE);
+}
+
+/**
+ * Sends an error message to the client.
+ * @param client_socket The client socket file descriptor.
+ * @param msg The error message to send.
+ */
+void send_error(int client_socket, const char *msg) {
+  write(client_socket, msg, strlen(msg));
 }
 
 /**
@@ -43,7 +59,6 @@ int setup_server_socket(int port) {
   if (listen(server_socket, SOMAXCONN) < 0) {
     error("Error listening");
   }
-
   printf("Server setup on port %d, waiting for connections...\n", port);
 
   return server_socket;
@@ -56,23 +71,22 @@ int setup_server_socket(int port) {
  * @param client_socket The client socket file descriptor.
  * @param filename The name of the file to send to the client.
  */
-void handle_get_command(int client_socket, char *filename) {
+void handle_get(int client_socket, char *filename) {
   FILE *file = fopen(filename, "r");
-  if (!file) {
-    char *errMsg = "SERVER 404 Not Found\n";
-    write(client_socket, errMsg, strlen(errMsg));
+  if (!file) { // File not found
+    write(client_socket, NOT_FOUND, strlen(NOT_FOUND));
     return;
   }
 
-  char *okMsg = "SERVER 200 OK\n\n";
-  write(client_socket, okMsg, strlen(okMsg));
+  // File found
+  write(client_socket, FOUND, strlen(FOUND));
 
-  char buffer[BUFFER_SIZE];
+  char buffer[BUFFER_SIZE]; // Read file line by line
   while (fgets(buffer, BUFFER_SIZE, file)) {
     write(client_socket, buffer, strlen(buffer));
   }
-  char *endMsg = "\n\n";
-  write(client_socket, endMsg, strlen(endMsg));
+  char *endMsg = "\n\n";                        // End of file
+  write(client_socket, endMsg, strlen(endMsg)); // Send double newline
 
   fclose(file);
 }
@@ -82,11 +96,15 @@ void handle_get_command(int client_socket, char *filename) {
  * @param client_socket The client socket file descriptor.
  * @param filename The name of the file to write to.
  */
-void handle_put_command(int client_socket, char *filename) {
+void handle_put(int client_socket, char *filename) {
+  if (!filename) { // No filename provided
+    write(client_socket, PUT_ERROR, strlen(PUT_ERROR));
+    return;
+  }
+
   FILE *file = fopen(filename, "w"); // Overwrite file
-  if (!file) {
-    char *errMsg = "SERVER 501 Put Error\n";
-    write(client_socket, errMsg, strlen(errMsg));
+  if (!file) {                       // Error opening file
+    write(client_socket, PUT_ERROR, strlen(PUT_ERROR));
     return;
   }
 
@@ -98,8 +116,7 @@ void handle_put_command(int client_socket, char *filename) {
     int bytes_read = recv(client_socket, buffer, BUFFER_SIZE, 0);
     if (bytes_read < 0) { // Read error
       fclose(file);
-      char *errMsg = "SERVER 500 Read Error\n";
-      write(client_socket, errMsg, strlen(errMsg));
+      write(client_socket, PUT_ERROR, strlen(PUT_ERROR));
       return;
     } else if (bytes_read == 0) { // Client disconnected
       fclose(file);
@@ -108,14 +125,13 @@ void handle_put_command(int client_socket, char *filename) {
 
     // Write to file and check for double newlines
     fwrite(buffer, 1, bytes_read, file);
-    for (int i = 0; i < bytes_read; ++i) {
+    for (int i = 0; i < bytes_read; ++i) { // Check for double newlines
       if (buffer[i] == '\n') {
         if (last_char_was_newline) {
-          newline_count++;
+          newline_count++; // Count newlines
           if (newline_count == 2) {
-            fclose(file);
-            char *okMsg = "SERVER 201 Created\n";
-            write(client_socket, okMsg, strlen(okMsg));
+            fclose(file);                                   // File written
+            write(client_socket, CREATED, strlen(CREATED)); // Send success
             return;
           }
         } else {
@@ -135,41 +151,27 @@ void handle_put_command(int client_socket, char *filename) {
  */
 void parse_message(int client_socket, char *buffer) {
   if (!buffer || *buffer == '\0') {
-    char *errMsg = "SERVER 502 Command Error\n";
-    write(client_socket, errMsg, strlen(errMsg));
+    write(client_socket, COMMAND_ERROR, 25);
     return;
   }
 
-  if (strncasecmp(buffer, "BYE", 3) == 0) {
-    printf("Received BYE command: Closing client...\n");
+  char *command = buffer;
+  char *filename = buffer + 4; // Points to the filename
+  if (filename) {
+    filename[strcspn(filename, "\r\n")] = 0; // Trim CRLF
+  }
+
+  if (strncasecmp(command, "BYE", 3) == 0) {
+    printf("Received BYE: Closing client socket...\n");
     close(client_socket);
-    return;
-  } else if (strncasecmp(buffer, "GET ", 4) == 0) {
-    char *filename = buffer + 4;
-    filename[strcspn(filename, "\r\n")] = 0;
-    if (*filename) {
-      handle_get_command(client_socket, filename);
-    } else {
-      char *errMsg = "SERVER 500 Get Error\n";
-      write(client_socket, errMsg, strlen(errMsg));
-    }
+  } else if (strncasecmp(command, "GET ", 4) == 0) {
+    handle_get(client_socket, filename);
     printf("Received GET request: %s\n", filename);
-    return;
-  } else if (strncasecmp(buffer, "PUT ", 4) == 0) {
-    char *filename = buffer + 4;
-    filename[strcspn(filename, "\r\n")] = 0;
-    if (*filename) {
-      handle_put_command(client_socket, filename);
-    } else {
-      char *errMsg = "SERVER 501 Put Error\n";
-      write(client_socket, errMsg, strlen(errMsg));
-    }
+  } else if (strncasecmp(command, "PUT ", 4) == 0) {
+    handle_put(client_socket, filename);
     printf("Received PUT request: %s\n", filename);
-    return;
   } else {
-    char errMsg[] = "SERVER 502 Command Error\n";
-    write(client_socket, errMsg, sizeof(errMsg) - 1);
-    return;
+    write(client_socket, COMMAND_ERROR, 25);
   }
 }
 
@@ -188,7 +190,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  int port = atoi(argv[1]);
+  int port = atoi(argv[1]); // Convert port to integer
   if (port < 1024 || port > 65535) {
     printf("Invalid port number. Please use a port number between 1024 and "
            "65535.\n");
@@ -197,30 +199,30 @@ int main(int argc, char *argv[]) {
 
   int server_socket = setup_server_socket(port);
 
-  while (1) { // Accept client connections
+  while (1) { // Required to not exit after a client disconnects
     struct sockaddr_in client_address;
     socklen_t client_address_len = sizeof(client_address);
     int client_socket = accept(
         server_socket, (struct sockaddr *)&client_address, &client_address_len);
 
-    if (client_socket < 0) {
+    if (client_socket < 0) { // Error accepting connection
       perror("Error accepting connection");
-      continue;
     }
 
-    printf("Client connected from %s\n", inet_ntoa(client_address.sin_addr));
+    printf("\nClient connected from %s\n", inet_ntoa(client_address.sin_addr));
 
-    char *hello_msg = "HELLO\n";
-    write(client_socket, hello_msg, strlen(hello_msg));
+    // Send HELLO
+    write(client_socket, "HELLO\n", 6);
 
     while (1) { // Handle client messages
       char buffer[BUFFER_SIZE] = {0};
       int bytes_read = recv(client_socket, buffer, BUFFER_SIZE - 1, 0);
 
-      if (bytes_read < 0) {
+      if (bytes_read < 0) { // Read error
         close(client_socket);
         break;
-      } else if (bytes_read == 0) {
+      } else if (bytes_read == 0) { // Client disconnected
+        printf("Client disconnected\n");
         close(client_socket);
         break;
       }
@@ -228,7 +230,7 @@ int main(int argc, char *argv[]) {
       buffer[bytes_read] = '\0';
       parse_message(client_socket, buffer);
     }
-  }
 
-  return 0;
+    return 0;
+  }
 }
