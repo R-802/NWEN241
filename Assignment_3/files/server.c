@@ -7,8 +7,11 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define BUFFER_SIZE 1024
+//----------Constants----------//
 
+#define BUFFER_SIZE 1024 // Buffer size for reading messages
+
+// Error messages
 #define COMMAND_ERROR "SERVER 502 Command Error\n"
 #define GET_ERROR "SERVER 500 Get Error\n"
 #define PUT_ERROR "SERVER 501 Put Error\n"
@@ -72,6 +75,11 @@ int setup_server_socket(int port) {
  * @param filename The name of the file to send to the client.
  */
 void handle_get(int client_socket, char *filename) {
+  if (filename == NULL || strlen(filename) == 0) {
+    write(client_socket, GET_ERROR, strlen(GET_ERROR));
+    return;
+  }
+
   FILE *file = fopen(filename, "r");
   if (!file) { // File not found
     write(client_socket, NOT_FOUND, strlen(NOT_FOUND));
@@ -80,13 +88,13 @@ void handle_get(int client_socket, char *filename) {
 
   // File found
   write(client_socket, FOUND, strlen(FOUND));
+  write(client_socket, "\n", 2); // Send newline
 
   char buffer[BUFFER_SIZE]; // Read file line by line
   while (fgets(buffer, BUFFER_SIZE, file)) {
     write(client_socket, buffer, strlen(buffer));
   }
-  char *endMsg = "\n\n";                        // End of file
-  write(client_socket, endMsg, strlen(endMsg)); // Send double newline
+  write(client_socket, "\n\n", 3); // Send double newline
 
   fclose(file);
 }
@@ -158,7 +166,7 @@ void parse_message(int client_socket, char *buffer) {
   char *command = buffer;
   char *filename = buffer + 4; // Points to the filename
   if (filename) {
-    filename[strcspn(filename, "\r\n")] = 0; // Trim CRLF
+    filename[strcspn(filename, "\r\n")] = 0; // Remove newline
   }
 
   if (strncasecmp(command, "BYE", 3) == 0) {
@@ -190,7 +198,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  int port = atoi(argv[1]); // Convert port to integer
+  int port = atoi(argv[1]);
   if (port < 1024 || port > 65535) {
     printf("Invalid port number. Please use a port number between 1024 and "
            "65535.\n");
@@ -209,7 +217,8 @@ int main(int argc, char *argv[]) {
       perror("Error accepting connection");
     }
 
-    printf("\nClient connected from %s\n", inet_ntoa(client_address.sin_addr));
+    printf("\nClient connected from %s\n",
+           inet_ntoa(client_address.sin_addr)); // Print client IP
 
     // Send HELLO
     write(client_socket, "HELLO\n", 6);
