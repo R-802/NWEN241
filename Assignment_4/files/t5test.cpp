@@ -7,13 +7,13 @@
  * g++ t5test.cpp abstractdb.cpp vectordb.cpp -o t5test
  *
  * If successful, executable file t5test should have been created.
- * 
- * Hint: An error message saying "undefined reference to nwen::VectorDbTable::xxx()" 
+ *
+ * Hint: An error message saying "undefined reference to nwen::VectorDbTable::xxx()"
  * is a linking error which means that the compiler is expecting an implementation
  * of the member function xxx() in the VectorDbTable class.
- * 
+ *
  * Hint: If you encounter a linking error, provide an empty implementation of that
- * member function first so that you can proceed with your testing. An empty 
+ * member function first so that you can proceed with your testing. An empty
  * implementation is essentially a function that is empty or returns a fixed value.
  */
 
@@ -34,34 +34,34 @@ struct movie t5movies[] = {
 
 int main(void)
 {
-    VectorDbTable *db;
+    VectorDbTable* db;
     bool r;
-    
+
     cout << "Instantiating VectorDbTable..." << endl;
     db = new VectorDbTable();
-       
+
     cout << "Invoking loadCSV(\"dummy\")..." << endl;
     r = db->loadCSV("dummy");
     cout << "Expected return value: 0" << endl;
-    cout << "Actual return value  : " << r << endl;   
-    
+    cout << "Actual return value  : " << r << endl;
+
     cout << "Invoking loadCSV(\"t5.csv\")..." << endl;
     r = db->loadCSV("t5.csv");
     cout << "Expected return value: 1" << endl;
-    cout << "Actual return value  : " << r << endl;       
+    cout << "Actual return value  : " << r << endl;
     cout << "Expected : rows = 3" << endl;
-    cout << "Actual   : rows = " << db->rows() << endl;  
-    
-    for(int i=0; i<3; i++) {
+    cout << "Actual   : rows = " << db->rows() << endl;
+
+    for (int i = 0; i < 3; i++) {
         cout << "Invoking get(" << i << ")..." << endl;
-        const movie *m = db->get(i);
-        const movie *e = t5movies + i;
+        const movie* m = db->get(i);
+        const movie* e = t5movies + i;
         cout << "Expected return value: (" << e->id << ", " << e->title << ", " << e->year << ", " << e->director << ")" << endl;
         cout << "Actual return value  : (" << m->id << ", " << m->title << ", " << m->year << ", " << m->director << ")" << endl;
     }
-    
+
     cout << "Freeing VectorDbTable..." << endl;
     delete db;
-    
+
     return 0;
 }
